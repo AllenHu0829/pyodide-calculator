@@ -1,0 +1,77 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Web App</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading">
+        <h2>Loading Python Environment...</h2>
+        <p>This may take a few seconds on first load.</p>
+    </div>
+    <div id="app" style="display: none;">
+        <h1>Python Web App</h1>
+        <div id="input-area">
+            <textarea id="user-input" placeholder="Enter input here..."></textarea>
+            <button id="run-btn" onclick="runPython()">Run</button>
+        </div>
+        <div id="output-area">
+            <h3>Output:</h3>
+            <pre id="output"></pre>
+        </div>
+        <div id="canvas-area">
+            <canvas id="plot-canvas"></canvas>
+        </div>
+    </div>
+    
+    <script>
+        let pyodide;
+        
+        async function initPyodide() {
+            pyodide = await loadPyodide();
+            
+            // Load common packages
+            await pyodide.loadPackage(['numpy', 'micropip']);
+            
+            // Load app.py
+            const response = await fetch('app.py');
+            const code = await response.text();
+            
+            // Run initialization code
+            await pyodide.runPythonAsync(code);
+            
+            // Hide loading, show app
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            
+            // Run init function if exists
+            try {
+                await pyodide.runPythonAsync('init()');
+            } catch (e) {
+                console.log('No init function found');
+            }
+        }
+        
+        async function runPython() {
+            const input = document.getElementById('user-input').value;
+            const outputEl = document.getElementById('output');
+            
+            try {
+                // Set input variable in Python
+                pyodide.globals.set('user_input', input);
+                
+                // Run main function
+                const result = await pyodide.runPythonAsync('main(user_input)');
+                outputEl.textContent = result;
+            } catch (e) {
+                outputEl.textContent = 'Error: ' + e.message;
+            }
+        }
+        
+        initPyodide();
+    </script>
+</body>
+</html>
